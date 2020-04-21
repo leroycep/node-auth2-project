@@ -61,16 +61,15 @@ server.post("/api/login", (req, res) => {
 server.get("/api/users", checkAuthorization, (req, res) => {
   db("users")
     .select()
+    .where({ department: req.token.department })
     .then((users) =>
-      res
-        .status(200)
-        .json(
-          users.map((u) => ({
-            id: u.id,
-            username: u.username,
-            department: u.department,
-          }))
-        )
+      res.status(200).json(
+        users.map((u) => ({
+          id: u.id,
+          username: u.username,
+          department: u.department,
+        }))
+      )
     )
     .catch((err) => {
       console.log(err);
