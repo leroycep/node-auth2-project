@@ -46,13 +46,31 @@ server.post("/api/login", (req, res) => {
     .where({ username: req.body.username })
     .first()
     .then((user) =>
+      res.status(200).json({
+        username: user.username,
+        department: user.department,
+        token: generateToken(user),
+      })
+    )
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json({ message: "failed while inserting new user" });
+    });
+});
+
+server.get("/api/users", checkAuthorization, (req, res) => {
+  db("users")
+    .select()
+    .then((users) =>
       res
         .status(200)
-        .json({
-          username: user.username,
-          department: user.department,
-          token: generateToken(user),
-        })
+        .json(
+          users.map((u) => ({
+            id: u.id,
+            username: u.username,
+            department: u.department,
+          }))
+        )
     )
     .catch((err) => {
       console.log(err);
@@ -72,6 +90,19 @@ function generateToken(user) {
   };
 
   return jwt.sign(payload, secrets.jwtSecret, options);
+}
+
+function checkAuthorization(req, res, next) {
+  if (req.headers.authorization === undefined) {
+    res.status(401).json({ message: "authorization header must be given" });
+    return;
+  }
+  if (!jwt.verify(req.headers.authorization, secrets.jwtSecret)) {
+    res.status(401).json({ message: "authorization header is invalid" });
+    return;
+  }
+  req.token = jwt.decode(req.headers.authorization);
+  next();
 }
 
 server.listen(port, () =>
